@@ -1,0 +1,44 @@
+# ----------------------------------------------------------------------------
+# 01_servoj_realtime_loop.script
+#
+# Real-Time Closed-Loop Servoj Control Example (500 Hz on e-Series / UR20 / UR30)
+# Suitable for Reinforcement Learning (RL) inference, ROS 2 velocity/position
+# streaming, or gamepad teleoperation.
+#
+# Controller Cycle Time: 0.002s (e-Series), 0.008s (CB-Series)
+# ----------------------------------------------------------------------------
+
+def servoj_realtime_controller():
+  # Read current starting joint configuration
+  global q_actual = get_actual_joint_positions()
+  global q_cmd = q_actual
+  
+  # Parameters for servoj
+  # t: Time execution interval in seconds (should match RTMachine period)
+  # lookahead_time: Predictive trajectory projection smoothing [0.03 : 0.2]
+  # gain: Proportional feedback tracking gain [100 : 2000]
+  t_cycle = 0.002
+  t_lookahead = 0.05
+  p_gain = 300
+  
+  textmsg("Starting real-time servoj loop...")
+  
+  # Example tracking loop: 1000 cycles (~2.0 seconds)
+  step = 0
+  while (step < 1000):
+    # In practice: receive delta_q from external controller (via RTDE or socket)
+    # Here we introduce a subtle sinusoidal movement on the wrist joint (joint 5)
+    delta_q = 0.0005 * sin(step * 0.05)
+    q_cmd[5] = q_cmd[5] + delta_q
+    
+    # Send servo command to controller
+    # servoj is blocking for the duration of t_cycle, maintaining deterministic timing
+    servoj(q_cmd, t=t_cycle, lookahead_time=t_lookahead, gain=p_gain)
+    
+    step = step + 1
+  end
+  
+  # Decelerate smoothly to complete stop
+  stopj(2.0)
+  textmsg("Real-time servoj loop finished.")
+end

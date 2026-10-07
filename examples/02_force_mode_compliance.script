@@ -1,0 +1,68 @@
+# ----------------------------------------------------------------------------
+# 02_force_mode_compliance.script
+#
+# Force-Guided Insertion & Surface Following (Peg-in-Hole Assembly)
+# Leverages the built-in 6-axis wrist Force/Torque sensor in UR e-Series.
+# ----------------------------------------------------------------------------
+
+def force_mode_assembly_demo():
+  # Zero the force/torque sensor while tool is stationary
+  textmsg("Zeroing F/T sensor...")
+  zero_ftsensor()
+  sleep(0.05)
+  
+  # Task Frame: Origin and orientation of the force coordinate system
+  # Using TCP coordinate system (p[0, 0, 0, 0, 0, 0])
+  task_frame = p[0, 0, 0, 0, 0, 0]
+  
+  # Selection Vector: [Fx, Fy, Fz, Tx, Ty, Tz]
+  # 1 means compliant (force controlled), 0 means non-compliant (position controlled)
+  # Here, we want compliance along Z-axis (pushing down)
+  selection_vector = [0, 0, 1, 0, 0, 0]
+  
+  # Target Wrench: [Fx, Fy, Fz, Tx, Ty, Tz]
+  # Apply a downward constant force of 15 Newtons along Z-axis
+  target_wrench = [0, 0, 15, 0, 0, 0]
+  
+  # Force Mode Type:
+  # 1 = Simple, 2 = Standard, 3 = Orientation, 4 = Motion frame
+  mode_type = 2
+  
+  # Motion Limits: Maximum allowable speed and deviation
+  # [vx_max, vy_max, vz_max, wx_max, wy_max, wz_max]
+  limits = [0.1, 0.1, 0.05, 0.5, 0.5, 0.5]
+  
+  textmsg("Entering force mode...")
+  # Set gain scaling to prevent instability when touching rigid surfaces
+  force_mode_set_gain_scaling(0.8)
+  force_mode_set_damping(0.02)
+  
+  force_mode(task_frame, selection_vector, target_wrench, mode_type, limits)
+  
+  # The robot maintains 15N contact force along Z for 3 seconds
+  # We can simultaneously execute lateral search or wait for contact
+  timer = 0
+  while (timer < 1500):
+    # Monitor actual applied force
+    wrench_actual = get_tcp_force()
+    fz = wrench_actual[2]
+    
+    # If unexpected reaction force exceeds 25N, exit early
+    if (fz > 25.0):
+      textmsg("Target contact threshold reached!")
+      break
+    end
+    
+    sync()
+    timer = timer + 1
+  end
+  
+  # Reset force mode to normal position control mode
+  end_force_mode()
+  textmsg("Force mode terminated safely.")
+  
+  # Retract tool 50mm upward
+  p_current = get_actual_tcp_pose()
+  p_retract = pose_trans(p_current, p[0, 0, -0.05, 0, 0, 0])
+  movel(p_retract, a=0.5, v=0.05)
+end

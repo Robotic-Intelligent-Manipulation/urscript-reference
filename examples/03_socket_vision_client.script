@@ -1,0 +1,60 @@
+# ----------------------------------------------------------------------------
+# 03_socket_vision_client.script
+#
+# TCP/IP Socket Communication Bridge to External Vision PC
+# Communicates with an external camera service running OpenCV / PyTorch.
+# ----------------------------------------------------------------------------
+
+def vision_guided_pick():
+  server_ip = "192.168.1.100"
+  server_port = 50005
+  sock_name = "vision_socket"
+  
+  textmsg("Connecting to Vision PC at ", server_ip)
+  
+  # Open TCP client socket
+  is_connected = socket_open(server_ip, server_port, sock_name)
+  if (not is_connected):
+    popup("Failed to establish TCP connection to Vision Server!", title="Network Error", error=True)
+    halt
+  end
+  
+  textmsg("Connection established. Sending capture trigger...")
+  
+  # Send text command followed by newline delimiter
+  socket_send_string("TRIGGER_CAPTURE", sock_name)
+  socket_send_byte(10, sock_name)  # ASCII newline (0x0A)
+  
+  # Read 6 ASCII floating point numbers returned by the vision system
+  # Expected format: "X Y Z Rx Ry Rz\n" (in meters and radians)
+  # socket_read_ascii_float returns a list where:
+  # list[0] = number of elements successfully read
+  # list[1..6] = the parsed float numbers
+  pose_data = socket_read_ascii_float(6, sock_name, timeout=5.0)
+  
+  # Close socket connection immediately after transaction
+  socket_close(sock_name)
+  
+  if (pose_data[0] == 6):
+    textmsg("Vision detection succeeded!")
+    
+    # Construct Cartesian target pose
+    target_pose = p[pose_data[1], pose_data[2], pose_data[3], pose_data[4], pose_data[5], pose_data[6]]
+    
+    # Approach waypoint (100mm above target)
+    approach_pose = pose_trans(target_pose, p[0, 0, -0.10, 0, 0, 0])
+    
+    # Move to approach position, then down to target
+    movel(approach_pose, a=1.0, v=0.2)
+    movel(target_pose, a=0.5, v=0.05)
+    
+    # Actuate digital output 0 to close pneumatic gripper
+    set_standard_digital_out(0, True)
+    sleep(0.5)
+    
+    # Retract with object
+    movel(approach_pose, a=0.8, v=0.15)
+  else:
+    popup("Object not detected by camera or socket timed out!", title="Vision Warning", warning=True)
+  end
+end
