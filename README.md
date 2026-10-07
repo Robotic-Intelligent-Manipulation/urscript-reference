@@ -12,8 +12,9 @@ Comprehensive reference manual and laboratory programming cookbook for **URScrip
 - [2. Controller Network Ports & Protocols](#2-controller-network-ports--protocols)
 - [3. Language Fundamentals & Data Types](#3-language-fundamentals--data-types)
 - [4. Modular API Reference (240 Built-in Functions)](#4-modular-api-reference-240-built-in-functions)
-- [5. Laboratory Recipes & Cookbook](#5-laboratory-recipes--cookbook)
-- [6. License & Contributing](#6-license--contributing)
+- [5. PC Script Authoring & Transfer Guide (SSH & FTP)](#5-pc-script-authoring--transfer-guide-ssh--ftp)
+- [6. Laboratory Recipes & Cookbook](#6-laboratory-recipes--cookbook)
+- [7. License & Contributing](#7-license--contributing)
 
 ---
 
@@ -73,7 +74,22 @@ The complete URScript library is documented in dedicated files under [`docs/`](d
 | **[`Module ProcessPath (Remote TCP & CNC G-Code Execution)`](docs/06-process-path-and-remote-tcp.md)** | Ch 19 | **12** | Toolpath process and Remote TCP (RTCP) controller module. Executes CAD/CAM CNC .nc G-code files and controls application... |
 | **Total API Coverage** | — | **240 Functions** | Fully documented with signatures, parameters, returns, and examples. |
 
-## 5. Laboratory Recipes & Cookbook
+## 5. PC Script Authoring & Transfer Guide (SSH & FTP)
+
+For comprehensive instructions on writing `.script` files on your PC and deploying them to physical or simulated UR controllers, see the dedicated guide:
+👉 **[`docs/script-transfer-and-execution-guide.md`](docs/script-transfer-and-execution-guide.md)**
+
+### Quick Comparison of Transfer Methods:
+- **Method 1: SSH / SCP (Command Line / Automation)**:
+  - Copy file: `scp my_program.script root@<robot_ip>:/programs/` (or user `ur` on newer e-Series).
+  - Default password: `easybot`.
+  - Remote shell: `ssh root@<robot_ip>` enables direct testing and pipeline scripting via `nc 127.0.0.1 30002 < /programs/my_program.script`.
+- **Method 2: FTP / SFTP (FileZilla / GUI)**:
+  - Connect using **SFTP protocol on Port 22** (native on all UR Linux controllers).
+  - Target destination: `/programs/`.
+  - Load into PolyScope: **Structure ➔ Advanced ➔ Script ➔ Set to "File" ➔ Select `/programs/my_program.script`**.
+
+## 6. Laboratory Recipes & Cookbook
 
 Ready-to-use URScript and Python templates are located in [`examples/`](examples/):
 
@@ -82,7 +98,7 @@ Ready-to-use URScript and Python templates are located in [`examples/`](examples
 - **[`03_socket_vision_client.script`](examples/03_socket_vision_client.script)**: TCP/IP client script communicating with an external OpenCV/Python vision server.
 - **[`python_interpreter_client.py`](examples/python_interpreter_client.py)**: Python client connecting to Port 30020 for interactive step-by-step script streaming.
 
-## 6. License & Contributing
+## 7. License & Contributing
 
 Developed by **Rifky Afriza** & **Fitri** for the **Robotic Intelligent Manipulation (PBL Cluster 4)** initiative at **Politeknik Negeri Batam**.
 
